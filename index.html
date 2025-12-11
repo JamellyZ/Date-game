@@ -10,19 +10,63 @@
         background: #87CEEB;
         font-family: Arial;
     }
+
+    canvas {
+        display: block;
+    }
+
+    /* BOTÕES DE CONTROLE (CELULAR) */
+    .controls {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 20px;
+        z-index: 10;
+    }
+
+    .btn {
+        width: 70px;
+        height: 70px;
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 30px;
+        user-select: none;
+        touch-action: manipulation;
+        box-shadow: 0 0 10px #0004;
+    }
+
+    .btn:active {
+        background: white;
+    }
 </style>
 </head>
 <body>
 
 <canvas id="game"></canvas>
 
+<!-- CONTROLES PARA CELULAR -->
+<div class="controls">
+    <div class="btn" id="left">⬅️</div>
+    <div class="btn" id="jump">⬆️</div>
+    <div class="btn" id="right">➡️</div>
+</div>
+
 <script>
 // CONFIG CANVAS
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener("resize", resize);
 
 // PERSONAGEM
 const player = {
@@ -42,32 +86,55 @@ const friction = 0.8;
 
 // PLATAFORMAS
 const platforms = [
-    { x: 0, y: canvas.height - 50, w: canvas.width, h: 50 }, // chão
+    { x: 0, y: canvas.height - 50, w: canvas.width, h: 50 },
     { x: 200, y: canvas.height - 150, w: 150, h: 20 },
     { x: 450, y: canvas.height - 280, w: 150, h: 20 },
     { x: 750, y: canvas.height - 200, w: 150, h: 20 }
 ];
 
-// OBJETIVO FINAL
+// CORAÇÃO FINAL
 const heart = { x: 800, y: canvas.height - 240, w: 40, h: 40 };
 
-// INPUT
+// INPUT (TECLADO)
 const keys = {};
 
 document.addEventListener("keydown", (e) => (keys[e.code] = true));
 document.addEventListener("keyup", (e) => (keys[e.code] = false));
 
+
+// INPUT (TOUCH / BOTÕES)
+// movimento contínuo no celular
+let leftPressed = false;
+let rightPressed = false;
+
+document.getElementById("left").addEventListener("touchstart", () => leftPressed = true);
+document.getElementById("left").addEventListener("touchend", () => leftPressed = false);
+
+document.getElementById("right").addEventListener("touchstart", () => rightPressed = true);
+document.getElementById("right").addEventListener("touchend", () => rightPressed = false);
+
+document.getElementById("jump").addEventListener("touchstart", () => {
+    if (!player.jumping) {
+        player.velY = -12;
+        player.jumping = true;
+    }
+});
+
+
 // LOOP DO JOGO
 function gameLoop() {
 
-    // MOVIMENTO
+    // MOVIMENTO (PC)
     if (keys["ArrowRight"]) player.velX = player.speed;
     else if (keys["ArrowLeft"]) player.velX = -player.speed;
-    else player.velX *= friction;
 
-    if (keys["Space"] && !player.jumping) {
-        player.velY = -12;
-        player.jumping = true;
+    // MOVIMENTO (CELULAR)
+    if (rightPressed) player.velX = player.speed;
+    if (leftPressed) player.velX = -player.speed;
+
+    // ATRITO
+    if (!keys["ArrowRight"] && !keys["ArrowLeft"] && !leftPressed && !rightPressed) {
+        player.velX *= friction;
     }
 
     // GRAVIDADE
@@ -102,10 +169,10 @@ function gameLoop() {
         window.location.reload();
     }
 
-    // DESENHAR
+    // DESENHAR TELA
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // plataforma
+    // plataformas
     ctx.fillStyle = "#654321";
     platforms.forEach((p) => ctx.fillRect(p.x, p.y, p.w, p.h));
 
