@@ -2,99 +2,85 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Um Pedido Especial 💖</title>
+<title>Pedido de Namoro 💖</title>
 <style>
     body {
         margin: 0;
         overflow: hidden;
-        background: #ffe4ec;
-        font-family: Arial, sans-serif;
-    }
-
-    #game {
-        position: relative;
-        width: 100vw;
-        height: 100vh;
-    }
-
-    .heart {
-        position: absolute;
-        font-size: 40px;
-        cursor: pointer;
-        animation: flutuar 2s infinite ease-in-out;
-    }
-
-    @keyframes flutuar {
-        0% { transform: translateY(0); }
-        50% { transform: translateY(-15px); }
-        100% { transform: translateY(0); }
-    }
-
-    #message {
-        display: none;
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: white;
-        padding: 30px;
-        border-radius: 20px;
-        text-align: center;
-        box-shadow: 0 0 25px rgba(0,0,0,0.3);
-    }
-
-    button {
-        padding: 12px 25px;
-        background: #ff4f79;
-        color: white;
-        border: none;
-        border-radius: 10px;
-        margin: 10px;
-        font-size: 18px;
-        cursor: pointer;
+        background: #87CEEB;
+        font-family: Arial;
     }
 </style>
 </head>
 <body>
 
-<div id="game"></div>
-
-<div id="message">
-    <h2>Você coletou todos os corações! 💖</h2>
-    <h1>Quer namorar comigo?</h1>
-    <button onclick="alert('Eu já sabia que você ia aceitar 😍')">Sim!</button>
-    <button onclick="alert('EU SABIAAAA!!! ❤️')">Com certeza!</button>
-</div>
+<canvas id="game"></canvas>
 
 <script>
-const game = document.getElementById("game");
-const totalHearts = 7;
-let collected = 0;
+// CONFIG CANVAS
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-function spawnHearts() {
-    for (let i = 0; i < totalHearts; i++) {
-        let heart = document.createElement("div");
-        heart.classList.add("heart");
-        heart.innerHTML = "❤️";
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-        heart.style.left = Math.random() * 90 + "vw";
-        heart.style.top = Math.random() * 80 + "vh";
+// PERSONAGEM
+const player = {
+    x: 80,
+    y: 0,
+    w: 40,
+    h: 40,
+    velX: 0,
+    velY: 0,
+    speed: 4,
+    jumping: false
+};
 
-        heart.addEventListener("click", () => {
-            heart.remove();
-            collected++;
+// FÍSICA
+const gravity = 0.6;
+const friction = 0.8;
 
-            if (collected === totalHearts) {
-                document.getElementById("message").style.display = "block";
-            }
-        });
+// PLATAFORMAS
+const platforms = [
+    { x: 0, y: canvas.height - 50, w: canvas.width, h: 50 }, // chão
+    { x: 200, y: canvas.height - 150, w: 150, h: 20 },
+    { x: 450, y: canvas.height - 280, w: 150, h: 20 },
+    { x: 750, y: canvas.height - 200, w: 150, h: 20 }
+];
 
-        game.appendChild(heart);
+// OBJETIVO FINAL
+const heart = { x: 800, y: canvas.height - 240, w: 40, h: 40 };
+
+// INPUT
+const keys = {};
+
+document.addEventListener("keydown", (e) => (keys[e.code] = true));
+document.addEventListener("keyup", (e) => (keys[e.code] = false));
+
+// LOOP DO JOGO
+function gameLoop() {
+
+    // MOVIMENTO
+    if (keys["ArrowRight"]) player.velX = player.speed;
+    else if (keys["ArrowLeft"]) player.velX = -player.speed;
+    else player.velX *= friction;
+
+    if (keys["Space"] && !player.jumping) {
+        player.velY = -12;
+        player.jumping = true;
     }
-}
 
-spawnHearts();
-</script>
+    // GRAVIDADE
+    player.velY += gravity;
 
-</body>
-</html>
+    // APLICAR MOVIMENTO
+    player.x += player.velX;
+    player.y += player.velY;
+
+    // COLISÕES COM PLATAFORMAS
+    platforms.forEach((p) => {
+        if (
+            player.x < p.x + p.w &&
+            player.x + player.w > p.x &&
+            player.y + player.h > p.y &&
+            player.y + play
