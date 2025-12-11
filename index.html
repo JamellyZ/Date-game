@@ -6,8 +6,9 @@
 <style>
     body {
         margin: 0;
-        overflow: hidden;
         background: #87CEEB;
+        overflow: hidden;
+        touch-action: none;
         font-family: Arial;
     }
 
@@ -15,41 +16,43 @@
         display: block;
     }
 
-    /* BOTÕES DE CONTROLE (CELULAR) */
+    /* CONTROLES MOBILE */
     .controls {
         position: fixed;
         bottom: 20px;
         left: 50%;
         transform: translateX(-50%);
         display: flex;
-        gap: 20px;
+        gap: 30px;
         z-index: 10;
     }
 
     .btn {
-        width: 70px;
-        height: 70px;
-        background: rgba(255, 255, 255, 0.7);
+        width: 80px;
+        height: 80px;
+        background: rgba(255,255,255,0.25);
+        border: 2px solid rgba(255,255,255,0.6);
         border-radius: 50%;
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 30px;
+        font-size: 36px;
+        backdrop-filter: blur(6px);
         user-select: none;
         touch-action: manipulation;
-        box-shadow: 0 0 10px #0004;
     }
 
     .btn:active {
-        background: white;
+        background: rgba(255,255,255,0.5);
     }
+
 </style>
 </head>
 <body>
 
 <canvas id="game"></canvas>
 
-<!-- CONTROLES PARA CELULAR -->
+<!-- CONTROLES -->
 <div class="controls">
     <div class="btn" id="left">⬅️</div>
     <div class="btn" id="jump">⬆️</div>
@@ -57,7 +60,7 @@
 </div>
 
 <script>
-// CONFIG CANVAS
+// CONFIGURAÇÃO DO CANVAS
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
@@ -68,95 +71,127 @@ function resize() {
 resize();
 window.addEventListener("resize", resize);
 
-// PERSONAGEM
+// MUNDO
+let cameraX = 0;
+const worldWidth = 2000;
+
+// PLAYER (sprite simples bonito)
 const player = {
     x: 80,
     y: 0,
-    w: 40,
-    h: 40,
+    w: 45,
+    h: 45,
     velX: 0,
     velY: 0,
     speed: 4,
     jumping: false
 };
 
-// FÍSICA
 const gravity = 0.6;
 const friction = 0.8;
 
-// PLATAFORMAS
+// PLATAFORMAS (com várias para o mapa ficar bonito)
 const platforms = [
-    { x: 0, y: canvas.height - 50, w: canvas.width, h: 50 },
-    { x: 200, y: canvas.height - 150, w: 150, h: 20 },
-    { x: 450, y: canvas.height - 280, w: 150, h: 20 },
-    { x: 750, y: canvas.height - 200, w: 150, h: 20 }
+    { x: 0, y: canvas.height - 60, w: worldWidth, h: 60 },
+    { x: 250, y: canvas.height - 150, w: 180, h: 20 },
+    { x: 550, y: canvas.height - 270, w: 180, h: 20 },
+    { x: 900, y: canvas.height - 190, w: 180, h: 20 },
+    { x: 1250, y: canvas.height - 260, w: 180, h: 20 },
+    { x: 1600, y: canvas.height - 190, w: 180, h: 20 },
 ];
 
-// CORAÇÃO FINAL
-const heart = { x: 800, y: canvas.height - 240, w: 40, h: 40 };
+// HEART FINAL (com brilho)
+const heart = { 
+    x: 1680, 
+    y: canvas.height - 240, 
+    w: 50, 
+    h: 50,
+    pulse: 0
+};
 
-// INPUT (TECLADO)
+// INPUT — teclado
 const keys = {};
+document.addEventListener("keydown", e => keys[e.code] = true);
+document.addEventListener("keyup", e => keys[e.code] = false);
 
-document.addEventListener("keydown", (e) => (keys[e.code] = true));
-document.addEventListener("keyup", (e) => (keys[e.code] = false));
-
-
-// INPUT (TOUCH / BOTÕES)
-// movimento contínuo no celular
+// INPUT — mobile
 let leftPressed = false;
 let rightPressed = false;
 
-document.getElementById("left").addEventListener("touchstart", () => leftPressed = true);
-document.getElementById("left").addEventListener("touchend", () => leftPressed = false);
+const btnLeft = document.getElementById("left");
+const btnRight = document.getElementById("right");
+const btnJump = document.getElementById("jump");
 
-document.getElementById("right").addEventListener("touchstart", () => rightPressed = true);
-document.getElementById("right").addEventListener("touchend", () => rightPressed = false);
+btnLeft.addEventListener("touchstart", () => leftPressed = true);
+btnLeft.addEventListener("touchend", () => leftPressed = false);
 
-document.getElementById("jump").addEventListener("touchstart", () => {
+btnRight.addEventListener("touchstart", () => rightPressed = true);
+btnRight.addEventListener("touchend", () => rightPressed = false);
+
+btnJump.addEventListener("touchstart", () => {
     if (!player.jumping) {
-        player.velY = -12;
+        player.velY = -13;
         player.jumping = true;
     }
 });
 
+// FUNÇÃO PARA CHUVA DE CORAÇÕES
+function rainHearts() {
+    for (let i = 0; i < 30; i++) {
+        setTimeout(() => {
+            const x = cameraX + Math.random() * canvas.width;
+            const y = -50;
+            const fallSpeed = 3 + Math.random() * 4;
 
-// LOOP DO JOGO
+            const drop = { x, y, fallSpeed };
+
+            function fall() {
+                drop.y += drop.fallSpeed;
+                ctx.font = "40px Arial";
+                ctx.fillText("💖", drop.x - cameraX, drop.y);
+
+                if (drop.y < canvas.height + 50)
+                    requestAnimationFrame(fall);
+            }
+
+            fall();
+        }, i * 100);
+    }
+}
+
+// LOOP PRINCIPAL
 function gameLoop() {
 
-    // MOVIMENTO (PC)
-    if (keys["ArrowRight"]) player.velX = player.speed;
-    else if (keys["ArrowLeft"]) player.velX = -player.speed;
-
-    // MOVIMENTO (CELULAR)
-    if (rightPressed) player.velX = player.speed;
-    if (leftPressed) player.velX = -player.speed;
-
-    // ATRITO
-    if (!keys["ArrowRight"] && !keys["ArrowLeft"] && !leftPressed && !rightPressed) {
-        player.velX *= friction;
-    }
+    // MOVIMENTO
+    if (keys["ArrowRight"] || rightPressed) player.velX = player.speed;
+    else if (keys["ArrowLeft"] || leftPressed) player.velX = -player.speed;
+    else player.velX *= friction;
 
     // GRAVIDADE
     player.velY += gravity;
 
-    // APLICAR MOVIMENTO
+    // APLICA MOVIMENTO
     player.x += player.velX;
     player.y += player.velY;
 
-    // COLISÕES COM PLATAFORMAS
-    platforms.forEach((p) => {
+    // COLISÕES
+    platforms.forEach(p => {
         if (
             player.x < p.x + p.w &&
             player.x + player.w > p.x &&
             player.y + player.h > p.y &&
-            player.y + player.h < p.y + p.h + player.velY
+            player.y + player.h < p.y + player.h
         ) {
             player.y = p.y - player.h;
             player.velY = 0;
             player.jumping = false;
         }
     });
+
+    // CAMERA seguindo o player
+    cameraX = player.x - canvas.width / 2;
+    if (cameraX < 0) cameraX = 0;
+    if (cameraX > worldWidth - canvas.width) cameraX = worldWidth - canvas.width;
 
     // CHEGOU NO CORAÇÃO
     if (
@@ -165,24 +200,57 @@ function gameLoop() {
         player.y < heart.y + heart.h &&
         player.y + player.h > heart.y
     ) {
-        alert("💖 Você chegou ao coração! Quer namorar comigo?");
-        window.location.reload();
+        rainHearts();
+        setTimeout(() => {
+            alert("💖 Você encontrou meu coração... quer namorar comigo?");
+        }, 600);
+        return;
     }
 
-    // DESENHAR TELA
+    // DESENHO DA TELA
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // plataformas
+    // CÉU
+    ctx.fillStyle = "#87CEEB";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // PLATAFORMAS ESTILIZADAS
     ctx.fillStyle = "#654321";
-    platforms.forEach((p) => ctx.fillRect(p.x, p.y, p.w, p.h));
+    platforms.forEach(p => {
+        ctx.fillRect(p.x - cameraX, p.y, p.w, p.h);
 
-    // coração
-    ctx.font = "40px Arial";
-    ctx.fillText("❤️", heart.x, heart.y);
+        // Graminha
+        ctx.fillStyle = "#4CAF50";
+        ctx.fillRect(p.x - cameraX, p.y - 5, p.w, 5);
+        ctx.fillStyle = "#654321";
+    });
 
-    // player
-    ctx.fillStyle = "red";
-    ctx.fillRect(player.x, player.y, player.w, player.h);
+    // PLAYER com sombra
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    ctx.beginPath();
+    ctx.ellipse(
+        player.x - cameraX + player.w/2,
+        player.y + player.h + 10,
+        20, 8, 0, 0, Math.PI * 2
+    );
+    ctx.fill();
+
+    // Player (bolinha fofa)
+    ctx.fillStyle = "#ff4f79";
+    ctx.beginPath();
+    ctx.arc(
+        player.x - cameraX + player.w/2,
+        player.y + player.h/2,
+        player.w/2,
+        0, Math.PI * 2
+    );
+    ctx.fill();
+
+    // CORAÇÃO PULSANTE
+    heart.pulse += 0.08;
+    const size = 40 + Math.sin(heart.pulse) * 6;
+    ctx.font = size + "px Arial";
+    ctx.fillText("❤️", heart.x - cameraX, heart.y);
 
     requestAnimationFrame(gameLoop);
 }
