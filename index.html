@@ -83,4 +83,45 @@ function gameLoop() {
             player.x < p.x + p.w &&
             player.x + player.w > p.x &&
             player.y + player.h > p.y &&
-            player.y + play
+            player.y + player.h < p.y + p.h + player.velY
+        ) {
+            player.y = p.y - player.h;
+            player.velY = 0;
+            player.jumping = false;
+        }
+    });
+
+    // CHEGOU NO CORAÇÃO
+    if (
+        player.x < heart.x + heart.w &&
+        player.x + player.w > heart.x &&
+        player.y < heart.y + heart.h &&
+        player.y + player.h > heart.y
+    ) {
+        alert("💖 Você chegou ao coração! Quer namorar comigo?");
+        window.location.reload();
+    }
+
+    // DESENHAR
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // plataforma
+    ctx.fillStyle = "#654321";
+    platforms.forEach((p) => ctx.fillRect(p.x, p.y, p.w, p.h));
+
+    // coração
+    ctx.font = "40px Arial";
+    ctx.fillText("❤️", heart.x, heart.y);
+
+    // player
+    ctx.fillStyle = "red";
+    ctx.fillRect(player.x, player.y, player.w, player.h);
+
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+
+</body>
+</html>
